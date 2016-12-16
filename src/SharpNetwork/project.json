@@ -10,6 +10,6 @@
     ]
   },
   "dependencies": {
-    "SharpStructures": "0.1.0"
+    "SharpStructures": "0.1.1"
   }
 }

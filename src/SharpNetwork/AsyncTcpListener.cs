@@ -7,11 +7,11 @@ namespace SharpNetwork
 {
     public class AsyncTcpListener
     {
-        public Action<Exception> OnException { get; set; }
+        public Action<SocketDescription, Exception> OnException { get; set; }
 
-        public Action<OperationCanceledException> OnCancelled { get; set; }
+        public Action<SocketDescription, OperationCanceledException> OnCancelled { get; set; }
 
-        public Action<Socket> OnDisconnected { get; set; }
+        public Action<SocketDescription> OnDisconnected { get; set; }
 
         public Action<Socket> OnConnected { get; set; }
 
@@ -58,10 +58,14 @@ namespace SharpNetwork
         private async void InteractWithClient(Socket client,
             Func<Socket, CancellationToken, Task> clientInteraction, CancellationToken token)
         {
+            var socketInfo = new SocketDescription();
+
             try
             {
                 using (client)
                 {
+                    socketInfo = new SocketDescription(client);
+
                     OnConnected?.Invoke(client);
 
                     await clientInteraction(client, token).ConfigureAwait(false);
@@ -69,15 +73,15 @@ namespace SharpNetwork
             }
             catch (OperationCanceledException ex)
             {
-                OnCancelled?.Invoke(ex);
+                OnCancelled?.Invoke(socketInfo, ex);
             }
             catch (Exception ex)
             {
-                OnException?.Invoke(ex);
+                OnException?.Invoke(socketInfo, ex);
             }
             finally
             {
-                OnDisconnected?.Invoke(client);
+                OnDisconnected?.Invoke(socketInfo);
             }
         }
     }

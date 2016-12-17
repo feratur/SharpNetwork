@@ -5,16 +5,38 @@ using System.Threading.Tasks;
 
 namespace SharpNetwork
 {
+    /// <summary>
+    /// Listens for connections from TCP network clients and processes connections asynchronously.
+    /// </summary>
     public class AsyncTcpListener
     {
-        public Action<SocketDescription, Exception> OnException { get; set; }
+        /// <summary>
+        /// Fired when an exception other than <see cref="T:System.OperationCanceledException" /> is caught.
+        /// </summary>
+        public Action<SocketEndpoints, Exception> OnException { get; set; }
 
-        public Action<SocketDescription, OperationCanceledException> OnCancelled { get; set; }
+        /// <summary>
+        /// Fired when an <see cref="T:System.OperationCanceledException" /> is caught.
+        /// </summary>
+        public Action<SocketEndpoints, OperationCanceledException> OnCancelled { get; set; }
 
-        public Action<SocketDescription> OnDisconnected { get; set; }
+        /// <summary>
+        /// Fired after a client disconnects.
+        /// </summary>
+        public Action<SocketEndpoints> OnDisconnected { get; set; }
 
+        /// <summary>
+        /// Fired when a connection is established.
+        /// </summary>
         public Action<Socket> OnConnected { get; set; }
 
+        /// <summary>
+        /// Listens for incoming TCP connections on a specified port.
+        /// </summary>
+        /// <param name="port">The port on which to listen for incoming connection attempts.</param>
+        /// <param name="clientInteraction">An asynchronous action that is performed on each connected socket.</param>
+        /// <param name="token">The token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task ListenAsync(int port, Func<Socket, CancellationToken, Task> clientInteraction,
             CancellationToken token)
         {
@@ -55,16 +77,18 @@ namespace SharpNetwork
             }
         }
 
+        #region Private methods
+
         private async void InteractWithClient(Socket client,
             Func<Socket, CancellationToken, Task> clientInteraction, CancellationToken token)
         {
-            var socketInfo = new SocketDescription();
+            var socketInfo = new SocketEndpoints();
 
             try
             {
                 using (client)
                 {
-                    socketInfo = new SocketDescription(client);
+                    socketInfo = new SocketEndpoints(client);
 
                     OnConnected?.Invoke(client);
 
@@ -84,5 +108,7 @@ namespace SharpNetwork
                 OnDisconnected?.Invoke(socketInfo);
             }
         }
+
+        #endregion
     }
 }

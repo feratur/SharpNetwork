@@ -1,6 +1,6 @@
 {
   "title": "SharpNetwork",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "frameworks": {
     "net450": {}
   },
@@ -10,6 +10,6 @@
     ]
   },
   "dependencies": {
-    "SharpStructures": "0.1.1"
+    "SharpStructures": "0.2.0"
   }
 }

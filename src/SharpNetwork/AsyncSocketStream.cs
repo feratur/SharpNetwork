@@ -19,6 +19,7 @@ namespace SharpNetwork
         #region Private members
 
         private readonly Timer _timer;
+        private readonly Tuple<CancellationToken, CancellationTokenRegistration> _tokenInfo;
 
         private bool _disposed;
 
@@ -28,12 +29,24 @@ namespace SharpNetwork
         /// Initializes a new instance of the <see cref="T:SharpNetwork.AsyncSocketStream" /> class.
         /// </summary>
         /// <param name="socket">Connected socket.</param>
-        public AsyncSocketStream(Socket socket)
+        public AsyncSocketStream(Socket socket) : this(socket, CancellationToken.None)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="T:SharpNetwork.AsyncSocketStream" /> class.
+        /// </summary>
+        /// <param name="socket">Connected socket.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+        public AsyncSocketStream(Socket socket, CancellationToken cancellationToken)
         {
             if (socket == null)
                 throw new ArgumentNullException(nameof(socket));
 
             Client = socket;
+
+            if (cancellationToken.CanBeCanceled)
+                _tokenInfo = Tuple.Create(cancellationToken, cancellationToken.Register(() => Client.Close()));
 
             _timer = new Timer(state => ((Socket)state).Close(), Client, -1, -1);
         }
@@ -174,6 +187,8 @@ namespace SharpNetwork
 
             _timer.Dispose();
 
+            _tokenInfo?.Item2.Dispose();
+
             _disposed = true;
 
             base.Dispose(disposing);
@@ -191,7 +206,12 @@ namespace SharpNetwork
             {
                 SetTimerIfNeeded(timeout);
 
-                using (token.Register(() => Client.Close()))
+                if (token.CanBeCanceled && (_tokenInfo == null || !_tokenInfo.Item1.Equals(token)))
+                {
+                    using (token.Register(() => Client.Close()))
+                        await SendReceiveLoopAsync(buffer, offset, count, method).ConfigureAwait(false);
+                }
+                else
                     await SendReceiveLoopAsync(buffer, offset, count, method).ConfigureAwait(false);
             }
             finally

@@ -13,7 +13,7 @@ namespace SharpNetwork
     {
         #region Private members
 
-        private readonly MemoryBuffer _receiveBuffer = new MemoryBuffer();
+        private readonly MemoryBuffer _receiveBuffer;
 
         #endregion
 
@@ -21,19 +21,26 @@ namespace SharpNetwork
         /// Initializes a new instance of the <see cref="T:SharpNetwork.AsyncBufferedSocketStream" /> class.
         /// </summary>
         /// <param name="socket">Connected socket.</param>
-        public AsyncBufferedSocketStream(Socket socket) : base(socket)
+        public AsyncBufferedSocketStream(Socket socket) : this(socket, CancellationToken.None)
         {
         }
 
         /// <summary>
-        /// An array of bytes received from a socket.
+        /// Initializes a new instance of the <see cref="T:SharpNetwork.AsyncBufferedSocketStream" /> class.
         /// </summary>
-        public byte[] ReceiveBufferArray => _receiveBuffer.Array;
+        /// <param name="socket">Connected socket.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+        public AsyncBufferedSocketStream(Socket socket, CancellationToken cancellationToken) : base(socket, cancellationToken)
+        {
+            _receiveBuffer = new MemoryBuffer();
+
+            ReceiveBuffer = new ReadOnlyList<byte>(_receiveBuffer);
+        }
 
         /// <summary>
-        /// A number of bytes received from a socket.
+        /// A read-only collection of bytes received from a stream.
         /// </summary>
-        public int ReceivedBytes => _receiveBuffer.Position;
+        public ReadOnlyList<byte> ReceiveBuffer { get; }
 
         /// <summary>
         /// A <see cref="T:SharpStructures.MemoryBuffer" /> the contents of which will be written to a stream.
@@ -75,6 +82,26 @@ namespace SharpNetwork
         {
             if (SendBuffer.Position > 0)
                 await WriteAsync(SendBuffer.Array, 0, SendBuffer.Position, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Tries to read all bytes available to the socket; all exceptions within the method are swallowed.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. Contains true if the operation is successful; contains false if an exception occurs.</returns>
+        public async Task<bool> TryReadAvailableBytesAsync()
+        {
+            try
+            {
+                var availableBytes = Client.Available;
+
+                await ReadToBufferAsync(availableBytes, CancellationToken.None).ConfigureAwait(false);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

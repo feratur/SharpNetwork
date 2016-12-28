@@ -26,14 +26,9 @@ namespace SharpNetwork
         Socket Client { get; }
 
         /// <summary>
-        /// An array of bytes received from a socket.
+        /// A read-only collection of bytes received from a stream.
         /// </summary>
-        byte[] ReceiveBufferArray { get; }
-
-        /// <summary>
-        /// A number of bytes received from a socket.
-        /// </summary>
-        int ReceivedBytes { get; }
+        ReadOnlyList<byte> ReceiveBuffer { get; }
 
         /// <summary>
         /// A <see cref="T:SharpStructures.MemoryBuffer" /> the contents of which will be written to a stream.
